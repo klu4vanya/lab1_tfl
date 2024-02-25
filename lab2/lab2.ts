@@ -59,14 +59,14 @@ function getRegex(state: States): string {
   let regex: string = deletingStates(state)[0].slice(-1).join()
   for (let i = regex.length; i >= 0; i--) {
     if (regex.includes("ε") || regex.includes("(null)*")) {
-      // regex = regex.replace("ε", "")
-      regex = regex.replace("(null)*", "")
+      regex = regex.replace("ε", "")
+      // regex = regex.replace("(null)*", "")
     }
   }
-  let simplified = regex.replace(/ε+/g, 'ε');
-  simplified = simplified.replace(/ε([a-z])/g, '$1');
-  simplified = simplified.replace(/([a-z])ε/g, '$1');
-  return simplified
+  // let simplified = regex.replace(/ε+/g, '');
+  // simplified = simplified.replace(/ε([a-z])/g, '$1');
+  // simplified = simplified.replace(/([a-z])ε/g, '$1');
+  return regex
 }
 function creatingEpsInitState(state: States) {
   let matrixTransition = state.translateMatrix
@@ -97,11 +97,11 @@ function creatingEpsFinalstate(state: States) {
     matrixTransition[parseInt(finalState[i])].push("ε")
   }
   for (let i = 0; i < matrixTransition.length - 1; i++) {
-    if (matrixTransition[i].length != matrixTransition[i+1].length) {
-      if (matrixTransition[i].length < matrixTransition[i+1].length) {
+    if (matrixTransition[i].length != matrixTransition[i + 1].length) {
+      if (matrixTransition[i].length < matrixTransition[i + 1].length) {
         matrixTransition[i].push(null)
-      } else{
-        matrixTransition[i+1].push(null)
+      } else {
+        matrixTransition[i + 1].push(null)
       }
     }
   }
@@ -118,6 +118,7 @@ function deletingStates(state: States) {
   let transitionMatrix = state.translateMatrix
   let interStates = getSetOfStates(state)
   let allStates = getAllStates(state)
+  console.log(interStates, allStates)
   for (let states of interStates) {
     for (let i of allStates) {
       if (i == states) continue
@@ -126,7 +127,7 @@ function deletingStates(state: States) {
         if (transitionMatrix[i][i] == null) {
           transitionMatrix[i][i] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i]
         } else {
-          transitionMatrix[i][i] = transitionMatrix[i][i] + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i]
+          transitionMatrix[i][i] = "(" + transitionMatrix[i][i]  + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i]+ ")"
         }
       }
       for (let j of allStates) {
@@ -136,7 +137,7 @@ function deletingStates(state: States) {
           if (transitionMatrix[i][j] == null) {
             transitionMatrix[i][j] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j]
           } else {
-            transitionMatrix[i][j] = transitionMatrix[i][j] + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j]
+            transitionMatrix[i][j] = "(" + transitionMatrix[i][j]  + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j]+ ")"
           }
         }
         //путь назад
@@ -144,7 +145,7 @@ function deletingStates(state: States) {
           if (transitionMatrix[j][i] == null) {
             transitionMatrix[j][i] = transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i]
           } else {
-            transitionMatrix[j][i] = transitionMatrix[j][i] + "|" + transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i]
+            transitionMatrix[j][i] = "(" + transitionMatrix[j][i]  + "|" + transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i]+ ")"
           }
         }
       }
@@ -153,6 +154,8 @@ function deletingStates(state: States) {
       state.translateMatrix[states][i] = null
       state.translateMatrix[i][states] = null
     }
+    console.log(states)
+    console.table(transitionMatrix)
   }
   return transitionMatrix
 }
