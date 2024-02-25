@@ -3,7 +3,7 @@ with open('input.txt', 'r') as f:
 
 with open('out.smt2', 'w') as f: pass
 def result(s):
-    with open('out.smt2', 'data') as f:
+    with open('out.smt2', 'a') as f:
         f.write(s + '\n')
 
 def counter(s, p):
