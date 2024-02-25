@@ -17,7 +17,7 @@ const n = lines[0].split(',').length;
 
 // Создаем матрицу n*n, заполненную значениями "null"
 const translateMatrix: (string | null)[][] = Array.from({ length: n }, () => Array(n).fill(null));
-console.table(translateMatrix)
+// console.table(translateMatrix)
 const initState = lines[1]
 const finalState = lines[2].split(",")
 for (let i = 3; i < lines.length; i++) {
@@ -37,18 +37,20 @@ const result: States = {
   translateMatrix,
 };
 state = result
-console.table(state.translateMatrix)
+// console.table(state.translateMatrix)
 function getSetOfStates(state: States) {
   let finalState = state.finalState
+  let initState = state.initState
   let setOfStates = []
-  for (let i = 1; i < parseInt(finalState[0]); i++) {
-    setOfStates.push(`${i}`)
+  for (let i = 0; i < state.translateMatrix.length; i++) {
+    setOfStates.push(i)
   }
+  setOfStates = setOfStates.filter(item => item != finalState[0] && item != initState)
   return setOfStates
 }
 function getAllStates(state: States) {
   let allStates = []
-  for (let i = 0; i <= parseInt(state.finalState[0]); i++) {
+  for (let i = 0; i < state.translateMatrix.length; i++) {
     allStates.push(`${i}`)
   }
   return allStates
@@ -57,11 +59,14 @@ function getRegex(state: States): string {
   let regex: string = deletingStates(state)[0].slice(-1).join()
   for (let i = regex.length; i >= 0; i--) {
     if (regex.includes("ε") || regex.includes("(null)*")) {
-      regex = regex.replace("ε", "")
+      // regex = regex.replace("ε", "")
       regex = regex.replace("(null)*", "")
     }
   }
-  return regex
+  let simplified = regex.replace(/ε+/g, 'ε');
+  simplified = simplified.replace(/ε([a-z])/g, '$1');
+  simplified = simplified.replace(/([a-z])ε/g, '$1');
+  return simplified
 }
 function creatingEpsInitState(state: States) {
   let matrixTransition = state.translateMatrix
@@ -86,17 +91,18 @@ function creatingEpsInitState(state: States) {
 function creatingEpsFinalstate(state: States) {
   let matrixTransition = state.translateMatrix
   let finalState = state.finalState
-  //получить каждое финальное состояние
-  //в каждое финальное пушить эпс
-  //вернуть новое состояние с одним финальным
   let newState: States = { ...state }
   let newFinalState = []
   for (let i = 0; i < state.finalState.length; i++) {
     matrixTransition[parseInt(finalState[i])].push("ε")
   }
   for (let i = 0; i < matrixTransition.length - 1; i++) {
-    if (matrixTransition[i].length != matrixTransition[matrixTransition.length - 1].length) {
-      matrixTransition[i].push(null)
+    if (matrixTransition[i].length != matrixTransition[i+1].length) {
+      if (matrixTransition[i].length < matrixTransition[i+1].length) {
+        matrixTransition[i].push(null)
+      } else{
+        matrixTransition[i+1].push(null)
+      }
     }
   }
   if (matrixTransition.length != matrixTransition[0].length) {
@@ -112,7 +118,6 @@ function deletingStates(state: States) {
   let transitionMatrix = state.translateMatrix
   let interStates = getSetOfStates(state)
   let allStates = getAllStates(state)
-
   for (let states of interStates) {
     for (let i of allStates) {
       if (i == states) continue
@@ -153,15 +158,14 @@ function deletingStates(state: States) {
 }
 function main() {
   let matrixTransition = state.translateMatrix
-  let zeroState = matrixTransition[0]
   let newState: States = { ...state }
   if (state.finalState.length > 1) {
     newState = creatingEpsFinalstate(state)
   } else {
-    for (let i = 0; i < matrixTransition.length; i++) {
-      if (matrixTransition[i][parseInt(newState.finalState[0])] != null && matrixTransition[i][parseInt(newState.finalState[0])] != "ε") {
+    for (let i = 0; i < newState.translateMatrix.length; i++) {
+      if (matrixTransition[parseInt(newState.finalState[0])][i] != null && matrixTransition[parseInt(newState.finalState[0])][i] != "ε") {
         creatingEpsFinalstate(newState)
-        newState.finalState[0] = `${(parseInt(newState.finalState[0]) + 1)}`
+        newState.finalState[0] = (newState.translateMatrix.length - 1).toString()
         state = newState
       } else {
         continue
@@ -169,15 +173,15 @@ function main() {
     }
   }
 
-  let counterFinalState = [...newState.finalState]
-  for (let i = 0; i < zeroState.length; i++) {
-    if (zeroState[i] != null || zeroState[i] != "ε") {
+  for (let i = 0; i < matrixTransition.length; i++) {
+    if (matrixTransition[i][initState] != null || matrixTransition[i][initState] != "ε") {
       newState.translateMatrix = creatingEpsInitState(state)
-      counterFinalState[0] = (parseInt(newState.finalState[0]) + 1).toString()
-      newState.finalState = counterFinalState
+      newState.finalState[0] = (newState.translateMatrix.length - 1).toString()
       break
     }
   }
+  // console.table(newState.translateMatrix)
+  // console.table(deletingStates(newState))
   console.log(getRegex(newState))
 }
 main()
