@@ -1,3 +1,4 @@
+"use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -9,36 +10,135 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
+Object.defineProperty(exports, "__esModule", { value: true });
+var fs = require("fs");
+var state;
+var data = fs.readFileSync('input.txt', 'utf8');
+// Разбиваем строки файла
+var lines = data.split('\n');
+// Получаем размерность матрицы
+var n = lines[0].split(',').length;
+// Создаем матрицу n*n, заполненную значениями "null"
+var translateMatrix = Array.from({ length: n }, function () { return Array(n).fill(null); });
+// console.table(translateMatrix)
+var initState = lines[1];
+var finalState = lines[2].split(",");
+for (var i = 3; i < lines.length; i++) {
+    var regex = /\((\d+),\s*([^\)]+)\)\s*->\s*(\d+)/;
+    var parts = lines[i].match(regex);
+    if (parts) {
+        var fromState = parseInt(parts[1], 10);
+        var inputSymbol = parts[2].trim();
+        var toState = parseInt(parts[3], 10);
+        translateMatrix[fromState][toState] = inputSymbol;
+    }
+}
+var result = {
+    initState: initState,
+    finalState: finalState,
+    translateMatrix: translateMatrix,
+};
+state = result;
+// console.table(state.translateMatrix)
+function deleteBrackets(a) {
+    var result = '';
+    if (a[0] == "(") {
+        if (a[3] == "*") {
+            result = a[1] + a[3];
+        }
+        else {
+            return a;
         }
     }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-var state = {
-    initState: "0",
-    finalState: ["2", "3"],
-    translateMatrix: [
-        [null, "a", null, null],
-        [null, null, "b", "c"],
-        [null, null, null, null],
-        [null, null, null, null]
-    ]
-};
+    else {
+        return a;
+    }
+    return result;
+}
+// console.log(deleteBrackets("(ab)*"))
+function outOfbrackets(a) {
+    if (a.includes("|")) {
+        var b = a.split('|');
+        var m = b[0].length;
+        var n_1 = b[1].length;
+        var dp = [];
+        for (var i_1 = 0; i_1 <= m; i_1++) {
+            dp[i_1] = [];
+            for (var j_1 = 0; j_1 <= n_1; j_1++) {
+                if (i_1 === 0 || j_1 === 0) {
+                    dp[i_1][j_1] = 0;
+                }
+                else if (b[0][i_1 - 1] === b[1][j_1 - 1]) {
+                    dp[i_1][j_1] = dp[i_1 - 1][j_1 - 1] + 1;
+                }
+                else {
+                    dp[i_1][j_1] = Math.max(dp[i_1 - 1][j_1], dp[i_1][j_1 - 1]);
+                }
+            }
+        }
+        var result_1 = [];
+        var i = m, j = n_1;
+        while (i > 0 && j > 0) {
+            if (b[0][i - 1] === b[1][j - 1]) {
+                result_1.unshift(b[0][i - 1]);
+                i--;
+                j--;
+            }
+            else if (dp[i - 1][j] > dp[i][j - 1]) {
+                i--;
+            }
+            else {
+                j--;
+            }
+        }
+        var string = result_1.join("");
+        var index1 = b[0].indexOf(string);
+        var index2 = b[1].indexOf(string);
+        if (index1 !== -1 && index2 !== -1 && index1 + string.length < b[0].length && index2 + string.length < b[1].length) {
+            var substr1 = b[0].substring(index1 + string.length);
+            var substr2 = b[1].substring(index2 + string.length);
+            var finalResult = string + "(" + substr1 + "|" + substr2 + ")";
+            return finalResult;
+        }
+    }
+    else {
+        return a;
+    }
+}
+// console.log(outOfbrackets("a*b|a*a(aa*a)*"))
+function findSubstr(a) {
+    var b = a.split("|");
+    if (b[0] <= b[1]) {
+        if (b[1].includes(b[0])) {
+            return b[0];
+        }
+        else {
+            return a;
+        }
+    }
+    else {
+        if (b[0].includes(b[1])) {
+            return b[1];
+        }
+        else {
+            return a;
+        }
+    }
+}
+// console.log(findSubstr("a*|a*a(aa*a)*aa*"))
 function getSetOfStates(state) {
     var finalState = state.finalState;
+    var initState = state.initState;
     var setOfStates = [];
-    for (var i = 1; i < parseInt(finalState[0]); i++) {
-        setOfStates.push("".concat(i));
+    for (var i = 0; i < state.translateMatrix.length; i++) {
+        setOfStates.push(i);
     }
+    setOfStates = setOfStates.filter(function (item) { return item != finalState[0] && item != initState; });
     return setOfStates;
 }
 function getAllStates(state) {
     var allStates = [];
-    for (var i = 0; i <= parseInt(state.finalState[0]); i++) {
+    for (var i = 0; i < state.translateMatrix.length; i++) {
         allStates.push("".concat(i));
     }
     return allStates;
@@ -48,9 +148,12 @@ function getRegex(state) {
     for (var i = regex.length; i >= 0; i--) {
         if (regex.includes("ε") || regex.includes("(null)*")) {
             regex = regex.replace("ε", "");
-            regex = regex.replace("(null)*", "");
+            // regex = regex.replace("(null)*", "")
         }
     }
+    // let simplified = regex.replace(/ε+/g, '');
+    // simplified = simplified.replace(/ε([a-z])/g, '$1');
+    // simplified = simplified.replace(/([a-z])ε/g, '$1');
     return regex;
 }
 function creatingEpsInitState(state) {
@@ -78,38 +181,35 @@ function creatingEpsInitState(state) {
 function creatingEpsFinalstate(state) {
     var matrixTransition = state.translateMatrix;
     var finalState = state.finalState;
-    // console.log(finalState)
-    //получить каждое финальное состояние
-    //в каждое финальное пушить эпс
-    //вернуть новое состояние с одним финальным
     var newState = __assign({}, state);
     var newFinalState = [];
-    // console.log(finalState.length)
     for (var i = 0; i < state.finalState.length; i++) {
         matrixTransition[parseInt(finalState[i])].push("ε");
     }
-    // console.log(matrixTransition[matrixTransition.length - 1])
     for (var i = 0; i < matrixTransition.length - 1; i++) {
-        if (matrixTransition[i].length != matrixTransition[matrixTransition.length - 1].length) {
-            matrixTransition[i].push(null);
+        if (matrixTransition[i].length != matrixTransition[i + 1].length) {
+            if (matrixTransition[i].length < matrixTransition[i + 1].length) {
+                matrixTransition[i].push(null);
+            }
+            else {
+                matrixTransition[i + 1].push(null);
+            }
         }
     }
-    // console.log(matrixTransition)
     if (matrixTransition.length != matrixTransition[0].length) {
         for (var i = 0; i < matrixTransition[0].length; i++) {
             newFinalState.push(null);
         }
     }
-    // console.log(newFinalState)
     matrixTransition.push(newFinalState);
     newState.finalState = matrixTransition.indexOf(newFinalState).toString();
-    // console.log(typeof(matrixTransition.indexOf(newFinalState)))
     return newState;
 }
 function deletingStates(state) {
     var transitionMatrix = state.translateMatrix;
     var interStates = getSetOfStates(state);
     var allStates = getAllStates(state);
+    // console.log(interStates, allStates)
     for (var _i = 0, interStates_1 = interStates; _i < interStates_1.length; _i++) {
         var states = interStates_1[_i];
         for (var _a = 0, allStates_1 = allStates; _a < allStates_1.length; _a++) {
@@ -119,10 +219,10 @@ function deletingStates(state) {
             //цикл в себя
             if (state.translateMatrix[i][states] != null && state.translateMatrix[states][i] != null) {
                 if (transitionMatrix[i][i] == null) {
-                    transitionMatrix[i][i] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i];
+                    transitionMatrix[i][i] = state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][i];
                 }
                 else {
-                    transitionMatrix[i][i] = transitionMatrix[i][i] + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i];
+                    transitionMatrix[i][i] = "(" + transitionMatrix[i][i] + "|" + state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][i] + ")";
                 }
             }
             for (var _b = 0, allStates_2 = allStates; _b < allStates_2.length; _b++) {
@@ -132,19 +232,19 @@ function deletingStates(state) {
                 //путь вперед
                 if (state.translateMatrix[i][states] != null && state.translateMatrix[states][j] != null) {
                     if (transitionMatrix[i][j] == null) {
-                        transitionMatrix[i][j] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j];
+                        transitionMatrix[i][j] = state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][j];
                     }
                     else {
-                        transitionMatrix[i][j] = transitionMatrix[i][j] + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j];
+                        transitionMatrix[i][j] = "(" + transitionMatrix[i][j] + "|" + state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][j] + ")";
                     }
                 }
                 //путь назад
                 if (state.translateMatrix[states][i] != null && state.translateMatrix[j][states] != null) {
                     if (transitionMatrix[j][i] == null) {
-                        transitionMatrix[j][i] = transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i];
+                        transitionMatrix[j][i] = transitionMatrix[j][states] + deleteBrackets("(" + transitionMatrix[states][states] + ")*") + transitionMatrix[states][i];
                     }
                     else {
-                        transitionMatrix[j][i] = transitionMatrix[j][i] + "|" + transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i];
+                        transitionMatrix[j][i] = "(" + transitionMatrix[j][i] + "|" + transitionMatrix[j][states] + deleteBrackets("(" + transitionMatrix[states][states] + ")*") + transitionMatrix[states][i] + ")";
                     }
                 }
             }
@@ -154,24 +254,22 @@ function deletingStates(state) {
             state.translateMatrix[states][i] = null;
             state.translateMatrix[i][states] = null;
         }
+        console.log(states);
+        console.table(transitionMatrix);
     }
     return transitionMatrix;
 }
 function main() {
-    var initState = state.initState;
-    var finalState = state.finalState;
     var matrixTransition = state.translateMatrix;
-    var zeroState = matrixTransition[0];
     var newState = __assign({}, state);
-    // console.log(creatingEpsInitState(state))
     if (state.finalState.length > 1) {
         newState = creatingEpsFinalstate(state);
     }
     else {
-        for (var i = 0; i < matrixTransition.length; i++) {
-            if (matrixTransition[i][parseInt(newState.finalState[0])] != null && matrixTransition[i][parseInt(newState.finalState[0])] != "ε") {
+        for (var i = 0; i < newState.translateMatrix.length; i++) {
+            if (matrixTransition[parseInt(newState.finalState[0])][i] != null && matrixTransition[parseInt(newState.finalState[0])][i] != "ε") {
                 creatingEpsFinalstate(newState);
-                newState.finalState[0] = "".concat((parseInt(newState.finalState[0]) + 1));
+                newState.finalState[0] = (newState.translateMatrix.length - 1).toString();
                 state = newState;
             }
             else {
@@ -179,18 +277,15 @@ function main() {
             }
         }
     }
-    var counterFinalState = __spreadArray([], newState.finalState, true);
-    for (var i = 0; i < zeroState.length; i++) {
-        if (zeroState[i] != null || zeroState[i] != "ε") {
+    for (var i = 0; i < matrixTransition.length; i++) {
+        if (matrixTransition[i][initState] != null || matrixTransition[i][initState] != "ε") {
             newState.translateMatrix = creatingEpsInitState(state);
-            counterFinalState[0] = (parseInt(newState.finalState[0]) + 1).toString();
-            newState.finalState = counterFinalState;
+            newState.finalState[0] = (newState.translateMatrix.length - 1).toString();
             break;
         }
     }
+    // console.table(newState.translateMatrix)
+    // console.table(deletingStates(newState))
     console.log(getRegex(newState));
-    //  (creatingEpsFinalstate(state))
-    // console.log(newState)
-    // console.log(creatingEpsFinalstate(state))
 }
 main();

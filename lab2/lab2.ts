@@ -1,6 +1,6 @@
 import * as fs from 'fs';
-
-interface States {
+import {deleteBrackets, exchangePlaces} from './simplifier.js'
+export interface States {
   initState: string;
   finalState: string[];
   translateMatrix: any;
@@ -38,7 +38,7 @@ const result: States = {
 };
 state = result
 // console.table(state.translateMatrix)
-function getSetOfStates(state: States) {
+export function getSetOfStates(state: States) {
   let finalState = state.finalState
   let initState = state.initState
   let setOfStates = []
@@ -48,7 +48,7 @@ function getSetOfStates(state: States) {
   setOfStates = setOfStates.filter(item => item != finalState[0] && item != initState)
   return setOfStates
 }
-function getAllStates(state: States) {
+export function getAllStates(state: States) {
   let allStates = []
   for (let i = 0; i < state.translateMatrix.length; i++) {
     allStates.push(`${i}`)
@@ -60,12 +60,9 @@ function getRegex(state: States): string {
   for (let i = regex.length; i >= 0; i--) {
     if (regex.includes("ε") || regex.includes("(null)*")) {
       regex = regex.replace("ε", "")
-      // regex = regex.replace("(null)*", "")
+      regex = regex.replace("(null)*", "")
     }
   }
-  // let simplified = regex.replace(/ε+/g, '');
-  // simplified = simplified.replace(/ε([a-z])/g, '$1');
-  // simplified = simplified.replace(/([a-z])ε/g, '$1');
   return regex
 }
 function creatingEpsInitState(state: States) {
@@ -116,18 +113,18 @@ function creatingEpsFinalstate(state: States) {
 }
 function deletingStates(state: States) {
   let transitionMatrix = state.translateMatrix
-  let interStates = getSetOfStates(state)
+  let interStates = exchangePlaces(state)
   let allStates = getAllStates(state)
-  console.log(interStates, allStates)
+  // console.table(transitionMatrix)
   for (let states of interStates) {
     for (let i of allStates) {
       if (i == states) continue
       //цикл в себя
       if (state.translateMatrix[i][states] != null && state.translateMatrix[states][i] != null) {
         if (transitionMatrix[i][i] == null) {
-          transitionMatrix[i][i] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i]
+          transitionMatrix[i][i] = state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][i]
         } else {
-          transitionMatrix[i][i] = "(" + transitionMatrix[i][i]  + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][i]+ ")"
+          transitionMatrix[i][i] = "(" + (transitionMatrix[i][i]  + "|" + state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][i]) + ")"
         }
       }
       for (let j of allStates) {
@@ -135,17 +132,17 @@ function deletingStates(state: States) {
         //путь вперед
         if (state.translateMatrix[i][states] != null && state.translateMatrix[states][j] != null) {
           if (transitionMatrix[i][j] == null) {
-            transitionMatrix[i][j] = state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j]
+            transitionMatrix[i][j] = state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][j]
           } else {
-            transitionMatrix[i][j] = "(" + transitionMatrix[i][j]  + "|" + state.translateMatrix[i][states] + "(" + state.translateMatrix[states][states] + ")*" + state.translateMatrix[states][j]+ ")"
+            transitionMatrix[i][j] = "(" +(transitionMatrix[i][j]  + "|" + state.translateMatrix[i][states] + deleteBrackets("(" + state.translateMatrix[states][states] + ")*") + state.translateMatrix[states][j])+ ")"
           }
         }
         //путь назад
         if (state.translateMatrix[states][i] != null && state.translateMatrix[j][states] != null) {
           if (transitionMatrix[j][i] == null) {
-            transitionMatrix[j][i] = transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i]
+            transitionMatrix[j][i] = transitionMatrix[j][states] + deleteBrackets("(" + transitionMatrix[states][states] + ")*") + transitionMatrix[states][i]
           } else {
-            transitionMatrix[j][i] = "(" + transitionMatrix[j][i]  + "|" + transitionMatrix[j][states] + "(" + transitionMatrix[states][states] + ")*" + transitionMatrix[states][i]+ ")"
+            transitionMatrix[j][i] = "(" + (transitionMatrix[j][i]  + "|" + transitionMatrix[j][states] + deleteBrackets("(" + transitionMatrix[states][states] + ")*") + transitionMatrix[states][i])+ ")"
           }
         }
       }
@@ -154,8 +151,8 @@ function deletingStates(state: States) {
       state.translateMatrix[states][i] = null
       state.translateMatrix[i][states] = null
     }
-    console.log(states)
-    console.table(transitionMatrix)
+    // console.log(states)
+    // console.table(transitionMatrix)
   }
   return transitionMatrix
 }
@@ -185,6 +182,8 @@ function main() {
   }
   // console.table(newState.translateMatrix)
   // console.table(deletingStates(newState))
+  // console.log(exchangePlaces(newState))
   console.log(getRegex(newState))
+  
 }
 main()
